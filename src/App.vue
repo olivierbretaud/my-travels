@@ -1,13 +1,11 @@
 <template>
-  <div id="app">
-    <div id="full-screen">
+  <v-app id="app" >
       <Navbar />
       <BottomNavBar />
-      <transition name="slide-fade">
+      <!-- <transition name="slide-fade"> -->
        <router-view/>
-      </transition>
-    </div>
-  </div>
+      <!-- </transition> -->
+  </v-app>
 </template>
 
 <script>
@@ -69,8 +67,16 @@ export default {
   background-color: var(--main-bg-color) !important;
 }
 
-.main-text-blue {
+.main-text-color {
   color: var(--main-bg-color) !important;
+}
+
+.primary--text {
+    color: var(--main-bg-color) !important;
+}
+
+.text-white {
+  color: white !important;
 }
 
 .text-grey {

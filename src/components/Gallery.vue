@@ -15,6 +15,7 @@
 </template>
  
 <script>
+  import { API_URL } from '../utils/utils.js';
   import axios from "axios";
   import VueGallery from 'vue-gallery';
   
@@ -23,25 +24,25 @@
       return {
         markersData: {},
         images: [],
-        index: null
-      };
+        index: null,
+        apiUrl: API_URL
+      }
     },
-      beforeCreate() {
-        axios.get('./helpers.json')
+    beforeCreate() {
+        axios.get(API_URL + '/all')
         .then((response) => {
-          // console.log(response.data)
           this.markersData = response.data
           for (let item in response.data) {
             let itemSrc = response.data[item].src
-            this.images.push(`${itemSrc}`);
+            this.images.push( this.apiUrl +`${itemSrc}`);
           }
         })
-      },
- 
+    },
     components: {
       gallery: VueGallery,
     },
   }
+
 </script> 
  
 <style scoped>
@@ -62,7 +63,7 @@
 
 .image-container {
   width: 25%;
-  height: 210px;
+  height: 300px;
   overflow: hidden;
 
 }
@@ -70,13 +71,13 @@
 .image {
   object-fit: cover;
   width: 100%;
-  height: 210px;
+  height: 300px;
   transition: width 0.5s, height 0.5s;
 }
 .image:hover {
   object-fit: cover;
   width: 110%;
-  height: 225px;
+  height: 300px;
 }
 
 @media screen and (max-width: 960px) {

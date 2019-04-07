@@ -1,11 +1,11 @@
 <template>
  <v-bottom-nav :active.sync="bottomNav" :value="true" absolute color="main-bg-blue" class="bottom-bar">
-    <router-link to="/timeLine" class="bottom-links">
+    <!-- <router-link to="/edit" class="bottom-links">
       <v-btn color="white" flat value="recent">
         <span>Travel book</span>
         <v-icon>burst_mode</v-icon>
       </v-btn>
-    </router-link>
+    </router-link> -->
     <router-link to="/gallery" class="bottom-links">
       <v-btn color="white" flat value="favorites">
         <span>Gallery</span>

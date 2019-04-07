@@ -1,22 +1,21 @@
 <template>
   <div class="map-container main-bg-blue">
-    <Search />
+    <Search @showSelectedTravel="showSelectedTravel"/>
     <l-map style="height: 100%; width: 100%" :zoom="zoom" :center="center">
       <l-tile-layer :url="url"></l-tile-layer>
       <li v-for='item in markersData' v-bind:key='item.id'>
-      <l-marker :lat-lng="[item.GPSLatitude, item.GPSLongitude]" :icon="item.icon" @click="toggleDisplayMarkerImage(item)">
-      </l-marker>
+        <l-marker :lat-lng="[item.GPSLatitude, item.GPSLongitude]" :icon="item.icon" @click="toggleDisplayMarkerImage(item)">
+        </l-marker>
       </li>
     </l-map>
-   <v-layout row justify-center class="dialog-container">
-      <v-dialog v-model="dialog" max-width="500" persistent >
-        <!-- <v-btn slot="activator" color="primary" dark>Open Dialog</v-btn> -->
+  	<v-layout row justify-center class="dialog-container">
+      <v-dialog v-model="dialog" max-width="500" hide-overlay persistent >
         <v-card>
-          <img v-bind:src='pictureData.src' class="image"/>
-          <v-card-title class="main-text-blue chewy dialog-title">
+          <img v-bind:src='apiUrl + pictureData.src' class="image"/>
+          <v-card-title class="main-text-color chewy dialog-title">
             {{ pictureData.place }} / {{ pictureData.country }} <br/>
           </v-card-title>
-          <h3 class="text-grey dialog-text"> {{ pictureData.area }} - {{ pictureData.date }}</h3>
+          <h3 class="text-grey dialog-text">{{moment(pictureData.date).subtract(10, 'days').calendar()}}</h3>
             <v-spacer></v-spacer>
               <v-btn flat @click="dialog = false"><v-icon color="rgb(35, 197, 184)">close</v-icon></v-btn>
             <v-spacer></v-spacer>
@@ -28,8 +27,10 @@
 
 <script>
 import { LMap, LTileLayer, LMarker } from 'vue2-leaflet';
-import Search from './Search'
+import Search from './Search';
+import { API_URL } from '../utils/utils.js'
 import axios from "axios";
+import moment from "moment"
 import 'leaflet/dist/leaflet.css'
 
 
@@ -44,29 +45,34 @@ export default {
   data() {
     return {
       url: 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
-      zoom: 7,
-      center: [-21.416389, -66.596944],
-      markersData: {},
+      zoom: 2.5,
+      center: [20, 10],
+	  markersData: [],
+	  apiUrl: API_URL,
       dialog: false,
-      pictureData: {}
+      pictureData: {},
     };
   },
   beforeCreate() {
-    axios.get('./helpers.json')
+    axios.get( API_URL +'/all')
       .then((response) => {
-        // console.log(response.data)
+          // eslint-disable-next-line 
+        console.log(response.data)
         this.markersData = response.data
-          // console.log(this.markersData)
-        this.center = [this.markersData.id1.GPSLatitude,this.markersData.id1.GPSLongitude]
       })
-      // .catch((err) => {
-      //     console.log(err)
-      // })
   },
   methods: {
+    moment,
     toggleDisplayMarkerImage(data) {
       this.pictureData = data
-      this.dialog = true
+	  this.dialog = true
+    },
+    showSelectedTravel(gpsArray) {
+        this.center = gpsArray
+        // this.zoom = 5
+    },
+    renderDate(date) {
+        return date.getYear()
     }
   }
 }
@@ -78,6 +84,10 @@ export default {
 .v-dialog__content {
   width: 100%;
   justify-content: flex-end;
+}
+
+.remove-overlay {
+  opacity: 0 !important;
 }
 
 .v-btn {
@@ -124,11 +134,11 @@ export default {
 
 
 .map-container{
-  margin-top: 64px;
+ margin-top: 48px;
   height: calc(100vh - 56px);
   width: 100%;
   position: fixed;
-  z-index: -3;
+  z-index: 3;
   opacity: 1;
 }
 
