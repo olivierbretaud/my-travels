@@ -21,6 +21,7 @@ const mysql = require('mysql');
 const multer = require('multer');
 // const upload = multer({ dest: __dirname + '/upload/images'});
 const bodyParser = require('body-parser'); 
+const fs =  require('fs')
 const app = express();  
 const port = 6999;
 // port mysql =  3306
@@ -67,7 +68,6 @@ app.get('/all', function (req, res) {
 // get all from places a travel
 app.get('/travel-center', function (req, res) {
     connection.query(`SELECT * FROM places WHERE travel="${req.query.travel}"`, function (err, result) {
-        console.log(res)
       if (err) throw err;
       res.send(result);
       res.end();
@@ -77,9 +77,27 @@ app.get('/travel-center', function (req, res) {
 //delete a place
 app.delete('/delete-place', function (req, res) {
     connection.query(`DELETE FROM places WHERE id=${req.body.id}`, function (err, result) {
-        console.log(res)
       if (err) throw err;
+      console.log(req.body)
+      fs.unlink("./public/"+ req.body.src, (err) => {
+        if (err) {
+            console.log("failed to delete local image:"+err);
+        } else {
+            console.log('successfully deleted local image');                                
+        }
+});
       res.send(result);
+      res.end();
+    });
+})
+
+app.delete('/delete-travel', function (req, res) {
+    console.log(req.body)
+    connection.query(`DELETE FROM travels WHERE travel_name="${req.body.name}"`, function (err, result) {
+        console.log(`DELETE FROM travels WHERE travel_name="${req.body.name}"`)
+        if (err) throw err;
+      res.send(result);
+      console.log(result)
       res.end();
     });
 })
@@ -88,9 +106,7 @@ app.delete('/delete-place', function (req, res) {
 app.post('/create-travel', function (req, res) {
     const body = req.body
     connection.query(`INSERT INTO travels ( travel_name ) values ( '${body.travelName}');`, function (err, result) {
-        console.log(body)
         if (err) throw err;
-            console.error(result);
     })
     return res.send({
         success: true
@@ -125,7 +141,6 @@ app.post('/upload', upload.array('photos', 10 ), (req, res) => {
     const src = req.files.map(item => {
         return '/images/' + item.filename
     })
-    console.log(body , lat , lng)
 
     if (!req.files) {
         console.log("No file received");
@@ -136,7 +151,7 @@ app.post('/upload', upload.array('photos', 10 ), (req, res) => {
         console.log('file received');
         connection.query(`INSERT INTO places ( place, src , travel, country, area, date, GPSLatitudeRef,  GPSLatitude, GPSLongitudeRef, GPSLongitude, altitude, description) values ( '${body.place}', '${src}', '${body.travel}', '${body.country}', '${body.area}', '${body.date}', '${body.GPSLatitudeRef}', '${lat}', '${body.GPSLongitudeRef}', '${lng}', '${body.altitude}', '${body.description}')`, function (err, result) {
             if (err) throw err;
-                console.error(result);
+                // console.error(result);
         })
         return res.send({
             success: true
@@ -146,7 +161,6 @@ app.post('/upload', upload.array('photos', 10 ), (req, res) => {
 
 
 const ConvertDMSToDD = (degrees, minutes, seconds, direction) => {
-    console.log('i am in convert')
     var dd = degrees + minutes/60 +  seconds/(60*60);
 
     if (direction == "S" || direction == "W") {

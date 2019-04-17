@@ -33,17 +33,14 @@ export default {
         this.items = res.data.map(item => {
             return item.travel_name
         })
+        this.travelName = this.items[0]
     })
   },
   methods: {
       getAllPlaceFromTravel() {
         axios.get( API_URL + `/travel-center/`, { params:{ travel : this.travelName}})
         .then((res) => {
-            console.log(res.data[0])
             this.$emit('showSelectedTravel', [res.data[0].GPSLatitude, res.data[0].GPSLongitude])
-            // this.items = res.data.map(item => {
-            //     return item.travel_name
-            // })
         })
       },
   }

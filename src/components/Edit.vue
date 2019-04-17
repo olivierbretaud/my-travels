@@ -1,94 +1,97 @@
 <template>
-    <div>
-        <div class="map-container main-bg-blue">
-            <l-map style="height: 100%; width: 100%" :zoom="zoom" :center="center" ref="map">
-                <l-tile-layer :url="url"></l-tile-layer>
-                    <l-marker :lat-lng.sync="markerPosition" :draggable=true ref="draggableMarker" v-on:dragend="setMapCenter()"></l-marker>
-                    <li v-for='item in markersData' v-bind:key='item.id'>
-                        <l-marker :lat-lng="[item.GPSLatitude, item.GPSLongitude]" :icon="item.icon" @click="toggleDisplayMarkerImage(item)">
-                        </l-marker>
-                    </li>
-            </l-map>
-            <v-layout row justify-center class="dialog-container">
-                <v-dialog v-model="dialog" max-width="500" hide-overlay persistent >
-                    <v-card>
-                    <img v-bind:src='apiUrl + pictureData.src' class="image"/>
-                    <v-card-title class="main-text-color chewy dialog-title">
-                        {{ pictureData.place }} / {{ pictureData.country }} <br/>
-                    </v-card-title>
-                    <h3 class="text-grey dialog-text"> {{ pictureData.date }}</h3>
-                        <v-btn class="main-bg-blue text-white" small v-on:click="deletePlace(pictureData.id)"> Delete this place</v-btn>
-                        <v-spacer></v-spacer>
-                        <v-btn flat @click="dialog = false"><v-icon color="rgb(35, 197, 184)">close</v-icon></v-btn>
-                        <v-spacer></v-spacer>
-                    </v-card>
-                </v-dialog>
-            </v-layout>
-        </div>
-        <div class="edit-container" >
-            <div class="panel">
-                <div v-on:click="toggleDisplayCreateTravel()" class="summary">
-                    <h3 class="titleName main-text-color">Create a new travel</h3>
-                    <v-btn icon medium >
-                        <v-icon v-if="!displayCreateTravel" medium purple>expand_more</v-icon>
-                        <v-icon v-if="displayCreateTravel" medium purple>expand_less</v-icon>
-                    </v-btn>
-                </div>
-                <div  v-if="displayCreateTravel" class="content">
-                    <v-text-field label="New travel name" v-model="newTravelName" placeholder="Name of the new travel"></v-text-field>
-                    <v-btn class="main-bg-blue text-white" small v-on:click="addtravel()"> + Add this travel</v-btn>
-                </div>
-            </div>
-            <div class="panel">
-                <div v-on:click="toggleDisplayAddPlace()" class="summary">
-                    <h3 class="titleName main-text-color">Add a new place</h3>
-                    <v-btn icon medium>
-                        <v-icon v-if="!displayAddPlace" medium purple>expand_more</v-icon>
-                        <v-icon v-if="displayAddPlace" medium purple>expand_less</v-icon>
-                    </v-btn>
-                </div>
-                <div v-if="displayAddPlace" class="content">
-                    <v-select
-                        :items="travelNameList"
-                        v-model="travelName"
-                        label="Select a travel"
-                        @change="getUpdatedMap()"
-                    ></v-select>
-                    <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" @click="$refs.files.click()">Select a picture</v-btn >
-                    <input type="file" id="files" ref="files" name="photos" v-show="false" multiple v-on:change="handleFilesUpload()"/>
-                    <img id="image" class="image-preview"/>
-                    <h4 v-if="travelName !== ''" class="primary--text">{{ gpsInfo }}</h4>
-                    <div v-if="files.length > 0">
-                        <v-btn class="main-bg-blue text-white" small v-on:click="getInfosFromMarker()">Valid the marker position</v-btn>
+    <v-container fluid>
+        <v-layout row wrap >
+            <v-flex sm12 md3 class="edit-container">
+                <div class="panel">
+                    <div v-on:click="toggleDisplayCreateTravel()" class="summary">
+                        <h3 class="titleName main-text-color">Create a new travel</h3>
+                        <v-btn icon medium >
+                            <v-icon v-if="!displayCreateTravel" medium purple>expand_more</v-icon>
+                            <v-icon v-if="displayCreateTravel" medium purple>expand_less</v-icon>
+                        </v-btn>
                     </div>
-                    <div v-if="displayPlaceInfos">
-                        <v-text-field label="place" v-model="place" placeholder="name of the place"></v-text-field>
-                        <v-text-field label="country" v-model="country" placeholder="country"></v-text-field>
-                        <v-text-field label="date" v-model="date" placeholder="date"></v-text-field>
-                        <v-textarea label="description" v-model="description" placeholder="description"></v-textarea>
-                        <v-btn class="main-bg-blue text-white" v-on:click="submitFiles()">Submit</v-btn>
+                    <div  v-if="displayCreateTravel" class="content">
+                        <v-text-field label="New travel name" v-model="newTravelName" placeholder="Name of the new travel"></v-text-field>
+                        <v-btn class="main-bg-blue text-white" small v-on:click="addtravel()"> + Add this travel</v-btn>
                     </div>
                 </div>
-            </div>
-            <div class="panel">
-                <div v-on:click="toggleDisplayUpdateTravel()" class="summary">
-                    <h3 class="titleName main-text-color">Update a travel</h3>
-                    <v-btn icon medium >
-                        <v-icon v-if="!displayUpdateTravel" medium purple>expand_more</v-icon>
-                        <v-icon v-if="displayUpdateTravel" medium purple>expand_less</v-icon>
-                    </v-btn>
+                <div class="panel">
+                    <div v-on:click="toggleDisplayAddPlace()" class="summary">
+                        <h3 class="titleName main-text-color">Add a new place</h3>
+                        <v-btn icon medium>
+                            <v-icon v-if="!displayAddPlace" medium purple>expand_more</v-icon>
+                            <v-icon v-if="displayAddPlace" medium purple>expand_less</v-icon>
+                        </v-btn>
+                    </div>
+                    <div v-if="displayAddPlace" class="content">
+                        <v-select
+                            :items="travelNameList"
+                            v-model="travelName"
+                            label="Select a travel"
+                            @change="getUpdatedMap()"
+                        ></v-select>
+                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" @click="$refs.files.click()">Select a picture</v-btn >
+                        <input type="file" id="files" ref="files" name="photos" v-show="false" multiple v-on:change="handleFilesUpload()"/>
+                        <img id="image" class="image-preview"/>
+                        <h4 v-if="travelName !== ''" class="primary--text">{{ gpsInfo }}</h4>
+                        <div v-if="files.length > 0">
+                            <v-btn class="main-bg-blue text-white" small v-on:click="getInfosFromMarker()">Valid the marker position</v-btn>
+                        </div>
+                        <div v-if="displayPlaceInfos">
+                            <v-text-field label="place" v-model="place" placeholder="name of the place"></v-text-field>
+                            <v-text-field label="country" v-model="country" placeholder="country"></v-text-field>
+                            <v-text-field label="date" v-model="date" placeholder="date"></v-text-field>
+                            <v-textarea label="description" v-model="description" placeholder="description"></v-textarea>
+                            <v-btn class="main-bg-blue text-white" v-on:click="submitFiles()">Submit</v-btn>
+                        </div>
+                    </div>
                 </div>
-                <div  v-if="displayUpdateTravel" class="content">
-                    <v-select
-                        :items="travelNameList"
-                        v-model="travelName"
-                        label="Select a travel"
-                    ></v-select>
-                    <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="getTravelToUpdate()">Select this travel</v-btn>
+                <div class="panel">
+                    <div v-on:click="toggleDisplayUpdateTravel()" class="summary">
+                        <h3 class="titleName main-text-color">Update a travel</h3>
+                        <v-btn icon medium >
+                            <v-icon v-if="!displayUpdateTravel" medium purple>expand_more</v-icon>
+                            <v-icon v-if="displayUpdateTravel" medium purple>expand_less</v-icon>
+                        </v-btn>
+                    </div>
+                    <div  v-if="displayUpdateTravel" class="content">
+                        <v-select
+                            :items="travelNameList"
+                            v-model="travelName"
+                            label="Select a travel"
+                        ></v-select>
+                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="getTravelToUpdate()">Select this travel</v-btn>
+                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="deleteTravel()">Delete this travel</v-btn>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            </v-flex>
+            <v-flex sm12 md9 class="map-container">
+                <l-map style="height: 100%; width: 100%" :zoom="zoom" :center="center" ref="map">
+                    <l-tile-layer :url="url"></l-tile-layer>
+                        <l-marker :lat-lng.sync="markerPosition" :draggable=true ref="draggableMarker" v-on:dragend="setMapCenter()"></l-marker>
+                        <li v-for='item in markersData' v-bind:key='item.id'>
+                            <l-marker :lat-lng="[item.GPSLatitude, item.GPSLongitude]" :icon="item.icon" @click="toggleDisplayMarkerImage(item)">
+                            </l-marker>
+                        </li>
+                </l-map>
+                <v-layout row justify-center class="dialog-container">
+                    <v-dialog v-model="dialog" max-width="500" hide-overlay persistent >
+                        <v-card>
+                        <img v-bind:src='apiUrl + pictureData.src' class="image"/>
+                        <v-card-title class="main-text-color chewy dialog-title">
+                            {{ pictureData.place }} / {{ pictureData.country }} <br/>
+                        </v-card-title>
+                        <h3 class="text-grey dialog-text"> {{ pictureData.date }}</h3>
+                            <v-btn class="main-bg-blue text-white" small v-on:click="deletePlace(pictureData.id , pictureData.src)"> Delete this place</v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn flat @click="dialog = false"><v-icon color="rgb(35, 197, 184)">close</v-icon></v-btn>
+                            <v-spacer></v-spacer>
+                        </v-card>
+                    </v-dialog>
+                </v-layout>
+            </v-flex>
+        </v-layout>
+    </v-container>
 </template>
 
 <script>
@@ -128,7 +131,7 @@ export default {
         place:"",
         country: "",
         area: "Sud-lipez",
-        date: "2017-06-15",
+        date: Date.now(),
         GPSLatitudeRef : "",
         GPSLatitude: -20,
         GPSLongitudeRef : "",
@@ -145,7 +148,7 @@ export default {
             this.GPSLongitude = this.markerPosition.lng
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${this.GPSLatitude}&lon=${this.GPSLongitude}`)
             .then((res) => {
-                console.log(res.data)
+                // console.log(res.data)
                 this.setMapCenter()
                 if (res.data.address.country) {
                     this.country = res.data.address.country
@@ -220,25 +223,34 @@ export default {
                 this.travelNameList = res.data.map(item => {
                     return item.travel_name
                 })
+                this.travelName = this.travelNameList[0]
             })
         },
         getTravelToUpdate() {
             axios.get( API_URL + `/travel-center/`, { params:{ travel : this.travelName}})
             .then((res) => {
-                this.center = [res.data[0].GPSLatitude, res.data[0].GPSLongitude]
-                this.markersData = res.data
+                if (res.data.length === 0 ) {
+                    this.deleteTravel()
+                    this.center = [0 , 0]
+
+                } else {
+                    this.center = [res.data[0].GPSLatitude, res.data[0].GPSLongitude]
+                    this.markersData = res.data
+                }
             })
         },
         toggleDisplayMarkerImage(data) {
             this.pictureData = data
             this.dialog = true
         },
-        deletePlace(item) {
-            axios.delete( API_URL + '/delete-place', { data : {id: item}}
+
+        deletePlace(itemId, itemSrc) {
+            axios.delete( API_URL + '/delete-place', { data : {id: itemId, src: itemSrc}}
             ).then(() => {
                 this.getUpdatedMap()
             })
         },
+
         getUpdatedMap() {
             axios.get( API_URL + `/travel-center/`, { params:{ travel : this.travelName}})
             .then((res) => {
@@ -246,6 +258,17 @@ export default {
                 this.dialog = false
             })
         },
+
+        deleteTravel() {
+            axios.delete( API_URL + '/delete-travel', { data : { name: this.travelName }})
+            .then((res) => {
+                this.markersData.map( item => {
+                    this.deletePlace(item.id, item.src)
+                })
+                this.getTravelList()
+            })
+        },
+
         submitFiles() {
             /*
             Initialize the form data
@@ -281,7 +304,6 @@ export default {
             });
             this.place = ""
             this.country = ""
-            this.travelName = ""
             this.date = ""
             this.description = ""
             this.files = []
@@ -291,7 +313,6 @@ export default {
         },
 
         ConvertDMSToDD(degrees, minutes, seconds, direction) {
-            console.log('i am in convert')
             var dd = degrees + minutes/60 + seconds/(60*60);
 
             if (direction == "S" || direction == "W") {
@@ -317,12 +338,16 @@ export default {
                 EXIF.getData(this_.files[0], function() {
                 const allMetaData =  EXIF.getAllTags(this)
                 if (allMetaData.GPSLatitude === undefined || isNaN(allMetaData.GPSLatitude[0]) ) {
-                    this_.date = allMetaData.DateTime;
+                    if (allMetaData.DateTime) {
+                        this_.date = allMetaData.DateTime;
+                    }
+                    else if (allMetaData.DateTimeOriginal) {
+                        this_.date = allMetaData.DateTimeOriginal
+                    }
                     console.log("meta no gps" ,allMetaData )
                     this_.gpsInfo = "Drag the marker and publish your picture";
                 } else {
                     this_.displayPlaceInfos = true,
-                    console.log(allMetaData)
                     this_.gpsInfo = "your picture is ready to upload"
                     this_.GPSLatitude = this_.ConvertDMSToDD(allMetaData.GPSLatitude[0], allMetaData.GPSLatitude[1], allMetaData.GPSLatitude[2], allMetaData.GPSLatitudeRef)
                     this_.GPSLongitude = this_.ConvertDMSToDD(allMetaData.GPSLongitude[0], allMetaData.GPSLongitude[1], allMetaData.GPSLongitude[2], allMetaData.GPSLongitudeRef)
@@ -331,7 +356,6 @@ export default {
                     this_.date = allMetaData.DateTime;
                     axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${this_.GPSLatitude}&lon=${this_.GPSLongitude}`)
                         .then((res) => {
-                            console.log(res.data)
                             this_.setMapCenter() 
                             this_.zoom = 6;
                             this_.country = res.data.address.country
@@ -389,17 +413,21 @@ export default {
 
 <style scoped>
 
+.container {
+    overflow-y: scroll;
+    overflow:hidden;
+    min-height: 100%;
+    margin-top: 60px;
+    padding: 0px;
+}
+
 .edit-container {
-    top: 64px;
-    left: 0;
-    position: absolute;
     background-color: white;
-    width: 30%;
+    width: 100%;
     z-index: 300;
     min-height: 100%;
     overflow-y: scroll;
     overflow:hidden;
-    padding-bottom: 50px;
 }
 
 .v-dialog__content {
@@ -466,9 +494,7 @@ export default {
 }
 
 @media screen and (max-width: 960px) {
-  .map-container{
-    margin-top: 48px;
-  }
+
 }
 
 @media screen and (max-width: 737px) {
@@ -479,11 +505,8 @@ export default {
 }
 
 .map-container{
-    margin-top: 64px;
-    height: calc(100vh - 56px);
-    width: 70%;
-    position: fixed;
-    right: 0;
+    width: 100%;
+    height: 100vh;
     z-index: 3;
     opacity: 1;
 }
