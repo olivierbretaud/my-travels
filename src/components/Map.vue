@@ -9,8 +9,8 @@
       </li>
     </l-map>
   	<v-layout row justify-center class="dialog-container">
-      <v-dialog v-model="dialog" max-width="500" hide-overlay persistent >
-        <v-card>
+      <v-dialog v-model="dialog" hide-overlay persistent max-width="500px">
+        <v-card >
           <img v-bind:src='apiUrl + pictureData.src' class="image"/>
           <v-card-title class="main-text-color chewy dialog-title">
             {{ pictureData.place }} / {{ pictureData.country }} <br/>
@@ -81,8 +81,8 @@ export default {
 
 <style scoped>
 @import "~leaflet/dist/leaflet.css";
+
 .v-dialog__content {
-  width: 100%;
   justify-content: flex-end;
 }
 
@@ -102,11 +102,12 @@ export default {
 }
 
 .dialog-title {
-  font-size: 1.8em;
+  font-size: 1.4em;
 }
 
 .dialog-text {
   font-weight: 400;
+  font-size: 1em;
 }
 
 .description-container {
@@ -132,9 +133,8 @@ export default {
   touch-action: auto !important;
 }
 
-
 .map-container{
- margin-top: 48px;
+    margin-top: 48px;
   height: calc(100vh - 56px);
   width: 100%;
   position: fixed;
@@ -143,9 +143,10 @@ export default {
 }
 
 .image {
-  object-fit: cover;
-  width: 100%;
-  height: 210px;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    max-height: 400px;
 }
 
 .dialog-container {
@@ -155,14 +156,14 @@ export default {
 }
 
 @media screen and (max-width: 960px) {
-  .map-container{
-    margin-top: 48px;
-  }
+    .map-container{
+        margin-top: 48px;
+    }
 }
 
 @media screen and (max-width: 737px) {
   .v-dialog__content {
-    width: 100%;
+    width: 100% ! important;
     justify-content: center;
   }
 }
