@@ -1,6 +1,6 @@
 <template>
     <v-container fluid>
-        <v-layout row wrap >
+        <v-layout row wrap class="map-edit-container">
             <v-flex sm12 md3 class="edit-container">
                 <div class="panel">
                     <div v-on:click="toggleDisplayCreateTravel()" class="summary">
@@ -28,14 +28,15 @@
                             :items="travelNameList"
                             v-model="travelName"
                             label="Select a travel"
-                            @change="getUpdatedMap()"
                         ></v-select>
-                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" @click="$refs.files.click()">Select a picture</v-btn >
+                        <v-btn v-if="travelName!== ''" class="main-bg-blue text-white" @click="selectTravelToAddPlace()">Select this travel</v-btn >
+
+                        <v-btn v-if="displayAddFiles" class="main-bg-blue text-white" @click="$refs.files.click()">Select a picture</v-btn >
                         <input type="file" id="files" ref="files" name="photos" v-show="false" multiple v-on:change="handleFilesUpload()"/>
                         <img id="image" class="image-preview"/>
-                        <h4 v-if="travelName !== ''" class="primary--text">{{ gpsInfo }}</h4>
+                        <h4 v-if="displayAddFiles" class="primary--text">{{ gpsInfo }}</h4>
                         <div v-if="files.length > 0">
-                            <v-btn class="main-bg-blue text-white" small v-on:click="getInfosFromMarker()">Valid the marker position</v-btn>
+                            <v-btn class="main-bg-blue text-white" small v-on:click="getInfosFromMarker()">Valid the position</v-btn>
                         </div>
                         <div v-if="displayPlaceInfos">
                             <v-text-field label="place" v-model="place" placeholder="name of the place"></v-text-field>
@@ -60,15 +61,15 @@
                             v-model="travelName"
                             label="Select a travel"
                         ></v-select>
-                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="getTravelToUpdate()">Select this travel</v-btn>
+                        <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="getUpdatedMap()">Select this travel</v-btn>
                         <v-btn v-if="travelName !== ''" class="main-bg-blue text-white" v-on:click="deleteTravel()">Delete this travel</v-btn>
                     </div>
                 </div>
             </v-flex>
             <v-flex sm12 md9 class="map-container">
-                <l-map style="height: 100%; width: 100%" :zoom="zoom" :center="center" ref="map">
+                <l-map style="height: 100%; width: 100%" :zoom="zoom" :center="center" ref="map" @click="addMarker">
                     <l-tile-layer :url="url"></l-tile-layer>
-                        <l-marker :lat-lng.sync="markerPosition" :draggable=true ref="draggableMarker" v-on:dragend="setMapCenter()"></l-marker>
+                        <l-marker v-if="displayAddMarker"  :lat-lng.sync="markerPosition" :draggable=true ref="draggableMarker" v-on:dragend="setMapCenter()"></l-marker>
                         <li v-for='item in markersData' v-bind:key='item.id'>
                             <l-marker :lat-lng="[item.GPSLatitude, item.GPSLongitude]" :icon="item.icon" @click="toggleDisplayMarkerImage(item)">
                             </l-marker>
@@ -82,7 +83,7 @@
                             {{ pictureData.place }} / {{ pictureData.country }} <br/>
                         </v-card-title>
                         <h3 class="text-grey dialog-text"> {{ pictureData.date }}</h3>
-                            <v-btn class="main-bg-blue text-white" small v-on:click="deletePlace(pictureData.id , pictureData.src)"> Delete this place</v-btn>
+                            <v-btn class="main-bg-blue text-white" small v-on:click="deletePlace(pictureData.id , pictureData.src)">Delete this place</v-btn>
                             <v-spacer></v-spacer>
                             <v-btn flat @click="dialog = false"><v-icon color="rgb(35, 197, 184)">close</v-icon></v-btn>
                             <v-spacer></v-spacer>
@@ -122,6 +123,9 @@ export default {
         travelName: "",
         displayCreateTravel: false,
         displayUpdateTravel: false,
+        displaySelectTravel: true,
+        displayAddFiles: false,
+        displayAddMarker: false,
         displayAddPlace: false,
         displayPlaceInfos: false,
         newTravelName: "",
@@ -140,7 +144,6 @@ export default {
         description: ""
     };
   },
-
     methods: {
         getInfosFromMarker() {
             this.displayPlaceInfos = true;
@@ -148,52 +151,57 @@ export default {
             this.GPSLongitude = this.markerPosition.lng
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${this.GPSLatitude}&lon=${this.GPSLongitude}`)
             .then((res) => {
-                // console.log(res.data)
                 this.setMapCenter()
-                if (res.data.address.country) {
-                    this.country = res.data.address.country
-                }
-                if (res.data.address.village ) {
-                    if (res.data.address.village && res.data.address.viewpoint) {
-                        this.place = res.data.address.viewpoint
-                    }
-                    else {
-                        this.place = res.data.address.village
-                    }
-                }
-                if (res.data.address.cliff) {
-                        this.place = res.data.address.cliff
-                }
-                if (res.data.address.city) {
-                    if (res.data.address.viewpoint) {
-                        this.place = res.data.address.viewpoint 
-                    }
-                    if (res.data.address.bird_hide) {
-                        this.place = res.data.address.bird_hide
-                    }
-                    if ( res.data.address.water) {
-                        this.place = res.data.address.water
-                    }
-                    else {
-                        this.place = res.data.address.city
-                    }
-                }
-                if (res.data.address.hamlet) {
-                    if (res.data.address.hamlet && res.data.address.viewpoint) {
-                        this.place = res.data.address.viewpoint 
-                    } else {
-                        this.place = res.data.address.hamlet
-                    }
-                }
-                if (res.data.address.attraction ) {
-                    this.place = res.data.address.attraction
-                } if (res.data.address.town) {
-                    this.place = res.data.address.town
-                }
+                this.setPlaceName(res)
             })
         },
+        addMarker(event) {
+            this.markerPosition = event.latlng
+        },
+        setPlaceName(res) {
+            this.country = res.data.address.country
+            if (res.data.address.country) {
+                this.country = res.data.address.country
+            }
+            if (res.data.address.village ) {
+                if (res.data.address.village && res.data.address.viewpoint) {
+                    this.place = res.data.address.viewpoint
+                }
+                else {
+                    this.place = res.data.address.village
+                }
+            }
+            if (res.data.address.cliff) {
+                    this.place = res.data.address.cliff
+            }
+            if (res.data.address.city) {
+                if (res.data.address.viewpoint) {
+                    this.place = res.data.address.viewpoint 
+                }
+                if (res.data.address.bird_hide) {
+                    this.place = res.data.address.bird_hide
+                }
+                if ( res.data.address.water) {
+                    this.place = res.data.address.water
+                }
+                else {
+                    this.place = res.data.address.city
+                }
+            }
+            if (res.data.address.hamlet) {
+                if (res.data.address.hamlet && res.data.address.viewpoint) {
+                    this.place = res.data.address.viewpoint 
+                } else {
+                    this.place = res.data.address.hamlet
+                }
+            }
+            if (res.data.address.attraction ) {
+                this.place = res.data.address.attraction
+            } if (res.data.address.town) {
+                this.place = res.data.address.town
+            }
+        },
         setMapCenter() {
-            // let mapCenter = this.$refs.map.mapObject.getCenter()
             this.center = [ this.markerPosition.lat, this.markerPosition.lng ]
         },
         toggleDisplayCreateTravel() {
@@ -207,15 +215,24 @@ export default {
             this.displayCreateTravel = false
         },
         toggleDisplayAddPlace() {
+            this.place = ""
+            this.country = ""
+            this.date = ""
+            this.description = ""
+            this.files = []
+            this.displayPlaceInfos = false
+            this.gpsInfo = ""
             this.displayAddPlace = !this.displayAddPlace
             this.displayCreateTravel = false
             this.displayUpdateTravel = false
             this.getTravelList()
         },
         addtravel() {
-            axios.post( API_URL + '/create-travel', { travelName: this.newTravelName })
-            this.toggleDisplayCreateTravel()
-            this.newTravelName = ""
+            if (this.newTravelName !== "") {
+                axios.post( API_URL + '/create-travel', { travelName: this.newTravelName })
+                this.toggleDisplayCreateTravel()
+                this.newTravelName = ""
+            }
         },
         getTravelList() {
             axios.get( API_URL + '/travels-list')
@@ -236,6 +253,7 @@ export default {
                 } else {
                     this.center = [res.data[0].GPSLatitude, res.data[0].GPSLongitude]
                     this.markersData = res.data
+                    .then(this.zoom = 6)
                 }
             })
         },
@@ -251,11 +269,21 @@ export default {
             })
         },
 
+        selectTravelToAddPlace() {
+            this.getUpdatedMap()
+            this.displaySelectTravel= false,
+            this.displayAddFiles= true
+        },
+
         getUpdatedMap() {
             axios.get( API_URL + `/travel-center/`, { params:{ travel : this.travelName}})
             .then((res) => {
-                this.markersData = res.data
-                this.dialog = false
+                if (res.data.length > 0) {
+                    this.markersData = res.data
+                    this.dialog = false
+                    this.center = [res.data[0].GPSLatitude, res.data[0].GPSLongitude]
+                    this.markerPosition= { lat: res.data[0].GPSLatitude, lng: res.data[0].GPSLongitude }
+                }
             })
         },
 
@@ -270,13 +298,8 @@ export default {
         },
 
         submitFiles() {
-            /*
-            Initialize the form data
-            */            
             let formData = new FormData();
-
             this.files = this.$refs.files.files;
-
             formData.append('markerLat' , this.markerPosition.lat );
             formData.append('markerLng' , this.markerPosition.lng);
             formData.append('place', this.place);
@@ -294,22 +317,8 @@ export default {
             /*
             Make the request to the POST /multiple-files URL
             */
-            axios.post( API_URL + '/upload', formData
-            ).then(function(res){
-                this.getUpdatedMap()
-            })
-            .catch(function(){
-            //     console.log(formData)
-            //   console.log('FAILURE!!');
-            });
-            this.place = ""
-            this.country = ""
-            this.date = ""
-            this.description = ""
-            this.files = []
-            this.getUpdatedMap()
+            axios.post( API_URL + '/upload', formData)
             this.toggleDisplayAddPlace()
-            this.displayPlaceInfos = false
         },
 
         ConvertDMSToDD(degrees, minutes, seconds, direction) {
@@ -327,80 +336,41 @@ export default {
             }
             this.files = this.$refs.files.files;
             let reader = new FileReader();
-                console.log("new image")
-                reader.onload = function (e) {
-                    document.getElementById("image").src = e.target.result;
-                };
-
-                reader.readAsDataURL(this.files[0]);
+            console.log("new image")
+            reader.onload = function (e) {
+                document.getElementById("image").src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
             if (this.files[0]) {
                 let this_ = this
                 EXIF.getData(this_.files[0], function() {
-                const allMetaData =  EXIF.getAllTags(this)
-                if (allMetaData.GPSLatitude === undefined || isNaN(allMetaData.GPSLatitude[0]) ) {
-                    if (allMetaData.DateTime) {
+                    const allMetaData =  EXIF.getAllTags(this)
+                    if (allMetaData.GPSLatitude === undefined || isNaN(allMetaData.GPSLatitude[0]) ) {
+                        if (allMetaData.DateTime) {
+                            this_.date = allMetaData.DateTime;
+                        }
+                        else if (allMetaData.DateTimeOriginal) {
+                            this_.date = allMetaData.DateTimeOriginal
+                        }
+                        console.log("meta no gps" ,allMetaData )
+                        this_.gpsInfo = "Click on the map to place a marker";
+                        this_.displayAddMarker = true
+                    } else {
+                        this_.displayPlaceInfos = true,
+                        this_.displayAddMarker = true
+                        this_.gpsInfo = "your picture is ready to upload"
+                        this_.GPSLatitude = this_.ConvertDMSToDD(allMetaData.GPSLatitude[0], allMetaData.GPSLatitude[1], allMetaData.GPSLatitude[2], allMetaData.GPSLatitudeRef)
+                        this_.GPSLongitude = this_.ConvertDMSToDD(allMetaData.GPSLongitude[0], allMetaData.GPSLongitude[1], allMetaData.GPSLongitude[2], allMetaData.GPSLongitudeRef)
+                        this_.markerPosition = { lat: this_.GPSLatitude, lng: this_.GPSLongitude };
+                        this_.center = [this_.GPSLatitude, this_.GPSLongitude ];
                         this_.date = allMetaData.DateTime;
-                    }
-                    else if (allMetaData.DateTimeOriginal) {
-                        this_.date = allMetaData.DateTimeOriginal
-                    }
-                    console.log("meta no gps" ,allMetaData )
-                    this_.gpsInfo = "Drag the marker and publish your picture";
-                } else {
-                    this_.displayPlaceInfos = true,
-                    this_.gpsInfo = "your picture is ready to upload"
-                    this_.GPSLatitude = this_.ConvertDMSToDD(allMetaData.GPSLatitude[0], allMetaData.GPSLatitude[1], allMetaData.GPSLatitude[2], allMetaData.GPSLatitudeRef)
-                    this_.GPSLongitude = this_.ConvertDMSToDD(allMetaData.GPSLongitude[0], allMetaData.GPSLongitude[1], allMetaData.GPSLongitude[2], allMetaData.GPSLongitudeRef)
-                    this_.markerPosition = { lat: this_.GPSLatitude, lng: this_.GPSLongitude };
-                    this_.center = [this_.GPSLatitude, this_.GPSLongitude ];
-                    this_.date = allMetaData.DateTime;
-                    axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${this_.GPSLatitude}&lon=${this_.GPSLongitude}`)
-                        .then((res) => {
-                            this_.setMapCenter() 
-                            this_.zoom = 6;
-                            this_.country = res.data.address.country
-                            if (res.data.address.village ) {
-                                if (res.data.address.village && res.data.address.viewpoint) {
-                                    this_.place = res.data.address.viewpoint
-                                }
-                                else {
-                                    this_.place = res.data.address.village
-                                }
-                            }
-                            if (res.data.address.cliff) {
-                                    this_.place = res.data.address.cliff
-                            }
-                            if (res.data.address.city) {
-                                if (res.data.address.viewpoint) {
-                                    this_.place = res.data.address.viewpoint 
-                                }
-                                if (res.data.address.bird_hide) {
-                                    this_.place = res.data.address.bird_hide
-                                }
-                                if ( res.data.address.water) {
-                                    this_.place = res.data.address.water
-                                }
-                                else {
-                                    this_.place = res.data.address.city
-                                }
-                            }
-                            if (res.data.address.hamlet) {
-                                if (res.data.address.hamlet && res.data.address.viewpoint) {
-                                    this_.place = res.data.address.viewpoint 
-                                } else {
-                                    this_.place = res.data.address.hamlet
-                                }
-                            }
-                            if (res.data.address.attraction ) {
-                                this_.place = res.data.address.attraction
-                            } else if (res.data.address.road){
-                                this_.place = res.data.address.road
-                            }
-                        })
+                        axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${this_.GPSLatitude}&lon=${this_.GPSLongitude}`)
+                            .then((res) => {
+                                this_.setMapCenter()
+                                this_.setPlaceName(res)
+                            })
                     }
                 })
-
-
             } else {
                 // eslint-disable-next-line 
                 console.log(`it's not image`)
@@ -416,9 +386,12 @@ export default {
 .container {
     overflow-y: scroll;
     overflow:hidden;
-    min-height: 100%;
     margin-top: 60px;
     padding: 0px;
+}
+
+.map-edit-container {
+    min-height: 90vh;
 }
 
 .edit-container {
@@ -494,19 +467,23 @@ export default {
 }
 
 @media screen and (max-width: 960px) {
-
+    .map-edit-container {
+        min-height: auto;
+    }
+    .map-container{
+        min-height: 70vh;
+    }
 }
 
 @media screen and (max-width: 737px) {
-  .v-dialog__content {
-    width: 100%;
-    justify-content: center;
-  }
+    .v-dialog__content {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .map-container{
     width: 100%;
-    height: 100vh;
     z-index: 3;
     opacity: 1;
 }
@@ -514,6 +491,7 @@ export default {
 .panel {
     background:#fff;
     font-size:16px;
+    padding-top: 5px;
     border-bottom:1px solid #e0e0e0;
     box-shadow:0 0 2px rgba(0,0,0,0.12),0 2px 4px rgba(0,0,0,0.24);
 }
@@ -523,7 +501,7 @@ export default {
 }
 
 .image-preview {
-    width: 100%
+    width: 100%;
 }
 
 .summary{
@@ -532,8 +510,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
-    padding-right: 10px;
+    padding-left: 15px;
     color:#212121;
     position: relative;
     font-size: 15px;

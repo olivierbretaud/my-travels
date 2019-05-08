@@ -21,7 +21,8 @@ const mysql = require('mysql');
 const multer = require('multer');
 // const upload = multer({ dest: __dirname + '/upload/images'});
 const bodyParser = require('body-parser'); 
-const fs =  require('fs')
+const fs =  require('fs');
+const sharp =  require('sharp');
 const app = express();  
 const port = 6999;
 // port mysql =  3306
@@ -41,9 +42,9 @@ const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, __dirname + '/public/images')
     },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + file.originalname)
-    }
+    // filename: function (req, file, cb) {
+    //     cb(null, Date.now() + file.originalname)
+    // }
 })
 
 let upload = multer({ storage: storage })
@@ -105,7 +106,7 @@ app.delete('/delete-travel', function (req, res) {
 //create travel 
 app.post('/create-travel', function (req, res) {
     const body = req.body
-    connection.query(`INSERT INTO travels ( travel_name ) values ( '${body.travelName}');`, function (err, result) {
+    connection.query(`INSERT INTO travels ( travel_name ) values ( '${body.travelName}');`, function (err) {
         if (err) throw err;
     })
     return res.send({
@@ -138,18 +139,26 @@ app.post('/upload', upload.array('photos', 10 ), (req, res) => {
         lng = body.markerLng
     }
 
-    const src = req.files.map(item => {
-        return '/images/' + item.filename
-    })
-
     if (!req.files) {
         console.log("No file received");
         return res.send({
           success: false
 		});
       } else {
-        console.log('file received');
-        connection.query(`INSERT INTO places ( place, src , travel, country, area, date, GPSLatitudeRef,  GPSLatitude, GPSLongitudeRef, GPSLongitude, altitude, description) values ( '${body.place}', '${src}', '${body.travel}', '${body.country}', '${body.area}', '${body.date}', '${body.GPSLatitudeRef}', '${lat}', '${body.GPSLongitudeRef}', '${lng}', '${body.altitude}', '${body.description}')`, function (err, result) {
+        console.log('file received', req.files[0]);
+        let inputFile  = req.files[0].path;
+        const outputFile = "resize" + req.files[0].originalname;
+
+        sharp(inputFile).resize({ width: 1040 }).toFile('public/images/' + outputFile)
+            .then(function() {
+                console.log("Success", 'public/images/' + outputFile);
+            })
+            .catch(function(err) {
+                console.log("Error occured", err);
+            });
+        const src = '/images/' + outputFile
+
+        connection.query(`INSERT INTO places ( place, src , travel, country, area, date, GPSLatitudeRef,  GPSLatitude, GPSLongitudeRef, GPSLongitude, altitude, description) values ( '${body.place}', '${src}', '${body.travel}', '${body.country}', '${body.area}', '${body.date}', '${body.GPSLatitudeRef}', '${lat}', '${body.GPSLongitudeRef}', '${lng}', '${body.altitude}', '${body.description}')`, function (err) {
             if (err) throw err;
                 // console.error(result);
         })
